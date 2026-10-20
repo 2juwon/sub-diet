@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="매달 빠져나가는 구독을 영수증 한 장에 모으고, 겹치는 구독과 곧 끝나는 무료 체험을 찾아 줍니다. 한국 주요 구독 31개 가격 내장(2026.10.20 조사).">
+<meta property="og:title" content="구독 다이어트">
+<meta property="og:description" content="내 구독, 한 달에 얼마 나가고 있을까? 영수증 한 장으로 확인하고 뺄 것을 찾아보세요.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://2juwon.github.io/sub-diet/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M10 5h20v28l-2.5-2-2.5 2-2.5-2-2.5 2-2.5-2-2.5 2-2.5-2-2.5 2z' fill='%232b3a8c'/%3E%3Cpath d='M14 17h12' stroke='%23fff' stroke-width='2.4'/%3E%3C/svg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>구독 다이어트</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Nanum+Gothic+Coding:wght@400;700&display=swap">
+<style>
+/* Layout: 감열지 영수증 한 장(오른쪽, 늘 보임) + 왼쪽 작업대(요약 → 내 구독 → 추가). 휴대폰에선 위아래로. */
+:root{
+  --bg:#e9edf1;          /* 계산대 철판 같은 차가운 회색 */
+  --paper:#fbfcfd;       /* 감열지 */
+  --panel:#ffffff;
+  --ink:#1d2433;         /* 본문 */
+  --ink2:#5b6577;        /* 보조 */
+  --line:#d3d9e1;
+  --thermal:#2b3a8c;     /* 감열 인쇄 남색 */
+  --stamp:#d2372b;       /* 해지 도장 빨강 */
+  --stamp-bg:#fdecea;
+  --warn:#a15c00; --warn-bg:#fff4e0;
+  --ok:#1f7a4d; --ok-bg:#e6f5ec;
+  --chip:#eef1f6;
+  --f-disp:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"Nanum Gothic Coding","D2Coding",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161d;--paper:#1c222c;--panel:#181d26;--ink:#e6eaf1;--ink2:#9aa4b5;--line:#2c3441;
+  --thermal:#9fb0ff;--stamp:#ff6b5e;--stamp-bg:#3a1c1a;--warn:#f0b35a;--warn-bg:#352a17;--ok:#6fd39e;--ok-bg:#16301f;--chip:#232a35;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d;--paper:#1c222c;--panel:#181d26;--ink:#e6eaf1;--ink2:#9aa4b5;--line:#2c3441;
+  --thermal:#9fb0ff;--stamp:#ff6b5e;--stamp-bg:#3a1c1a;--warn:#f0b35a;--warn-bg:#352a17;--ok:#6fd39e;--ok-bg:#16301f;--chip:#232a35;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:28px;align-items:start}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}}
+h1{font-family:var(--f-disp);font-weight:400;font-size:34px;margin:0;letter-spacing:.5px}
+h2{font-family:var(--f-disp);font-weight:400;font-size:22px;margin:0}
+.sub{color:var(--ink2);font-size:13px}
+.asof{display:inline-flex;align-items:center;gap:7px;margin-top:8px;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--ink2)}
+.asof b{color:var(--thermal);font-family:var(--f-mono)}
+.asof .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.svc .dt{font-family:var(--f-mono);font-size:11px;color:var(--ink2);margin-top:6px}
+.svc .dt.old{color:var(--warn)}
+.num{font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--thermal);outline-offset:2px}
+.top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:end;justify-content:space-between;margin-bottom:18px}
+.col{display:flex;flex-direction:column;gap:22px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.sumgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.sumgrid{grid-template-columns:1fr 1fr}.sumgrid .big{grid-column:1/-1}}
+.stat .k{font-size:12px;color:var(--ink2);letter-spacing:.3px}
+.stat .v{font-family:var(--f-mono);font-weight:700;font-size:22px}
+.stat.big .v{font-size:30px;color:var(--thermal)}
+.bars{display:flex;flex-direction:column;gap:7px;margin-top:16px}
+.bar{display:grid;grid-template-columns:86px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:13px}
+.bar .t{height:10px;background:var(--chip);border-radius:5px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--thermal);border-radius:5px}
+.bar .a{text-align:right;font-family:var(--f-mono)}
+.alerts{display:flex;flex-direction:column;gap:8px}
+.alert{border-radius:10px;padding:10px 12px;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.alert b{font-weight:600}
+.alert.stamp{background:var(--stamp-bg);color:var(--stamp)}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.ok{background:var(--ok-bg);color:var(--ok)}
+.alert .tag{flex:none;font-size:11px;border:1.5px solid currentColor;border-radius:4px;padding:0 5px;font-weight:700;margin-top:2px}
+.alert span{color:var(--ink)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 13px;font-size:14px}
+.btn:hover{border-color:var(--thermal)}
+.btn.pri{background:var(--thermal);border-color:var(--thermal);color:var(--paper);font-weight:600}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink2)}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;background:var(--panel)}
+.item .nm{font-weight:600;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.item .pl{font-size:13px;color:var(--ink2)}
+.item .pr{text-align:right;font-family:var(--f-mono);font-weight:700;font-size:17px}
+.item .pr small{display:block;font-weight:400;font-size:12px;color:var(--ink2)}
+.item .meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;font-size:12px}
+.pill{background:var(--chip);border-radius:999px;padding:2px 9px;color:var(--ink2)}
+.pill.d{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.pill.t{background:var(--stamp-bg);color:var(--stamp);font-weight:600}
+.pill.x{background:var(--chip);color:var(--ink2);font-style:normal;border:1px dashed var(--line)}
+.edit{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
+.edit label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink2)}
+input,select,textarea{border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--paper);min-width:0;width:100%}
+.edit .acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between}
+.empty{border:1.5px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--ink2)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 12px;font-size:13px}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.cat{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;max-height:430px;overflow:auto;padding-right:4px}
+.svc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper)}
+.svc .h{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.svc .h .from{font-family:var(--f-mono);font-weight:400;font-size:12px;color:var(--ink2);white-space:nowrap}
+.svc .pls{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.svc .pls button{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:3px 8px;font-size:12px;text-align:left}
+.svc .pls button:hover{border-color:var(--thermal);color:var(--thermal)}
+.svc .pls button b{font-family:var(--f-mono);font-weight:700}
+.svc .note{font-size:11.5px;color:var(--ink2);margin-top:6px}
+.svc .chk{color:var(--warn)}
+textarea{min-height:90px;resize:vertical}
+.found{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.found .f{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:14px;flex-wrap:wrap}
+/* 영수증 */
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;flex-direction:column;gap:12px}
+@media (max-width:900px){.side{position:static}}
+.receipt{background:var(--paper);color:var(--thermal);font-family:var(--f-mono);font-size:13.5px;line-height:1.6;padding:22px 20px 26px;position:relative;
+  box-shadow:0 1px 0 var(--line),0 10px 24px -14px rgba(20,30,60,.35);
+  -webkit-mask:radial-gradient(circle 6px at 6px 100%,#0000 98%,#000) 0 0/12px 100% repeat-x;
+  mask:radial-gradient(circle 6px at 6px 100%,#0000 98%,#000) 0 0/12px 100% repeat-x}
+.receipt .c{text-align:center}
+.receipt .ttl{font-size:20px;font-weight:700;letter-spacing:6px}
+.receipt hr{border:0;border-top:1.5px dashed currentColor;opacity:.55;margin:10px 0}
+.receipt .ln{display:flex;justify-content:space-between;gap:10px}
+.receipt .ln span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.receipt .ln span:last-child{white-space:nowrap}
+.receipt .tot{font-size:17px;font-weight:700}
+.receipt .small{font-size:12px;opacity:.85}
+.receipt .stampmark{position:absolute;right:12px;top:16px;transform:rotate(-12deg);border:2.5px solid var(--stamp);color:var(--stamp);border-radius:6px;padding:2px 8px;font-weight:700;font-size:13px;opacity:.85}
+.receipt .bc{height:34px;margin-top:12px;background:repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 4px,currentColor 4px 5px,transparent 5px 8px,currentColor 8px 11px,transparent 11px 12px);opacity:.75}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:9px 16px;border-radius:999px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+.foot{font-size:12px;color:var(--ink2);line-height:1.6}
+.foot a{color:var(--ink2)}
+details summary{cursor:pointer}
+.searchrow{display:flex;gap:8px;margin-bottom:10px}
+@media (prefers-reduced-motion:no-preference){.item,.svc{transition:border-color .15s}}
+</style>
+
+<div class="top">
+  <div>
+    <h1>구독 다이어트</h1>
+    <div class="sub">매달 빠져나가는 구독을 영수증 한 장에 모으고, 뺄 수 있는 걸 찾아 드려요. 가격은 내 금액으로 고칠 수 있어요.</div>
+    <div class="asof"><span class="dot" aria-hidden="true"></span>가격 조사일 <b id="asof"></b> · 서비스마다 가격 자료 날짜를 함께 적었어요</div>
+  </div>
+  <div class="row">
+    <button class="btn sm" id="btnSample" hidden>예시 지우고 내 걸로 시작</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="col">
+    <section class="panel" aria-labelledby="h-sum">
+      <h2 id="h-sum" style="margin-bottom:12px">한눈에</h2>
+      <div class="sumgrid">
+        <div class="stat big"><div class="k">한 달에</div><div class="v num" id="sMonth">0원</div></div>
+        <div class="stat"><div class="k">1년이면</div><div class="v num" id="sYear">0원</div></div>
+        <div class="stat"><div class="k">구독 수</div><div class="v num" id="sCount">0개</div></div>
+      </div>
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-chk">
+      <h2 id="h-chk" style="margin-bottom:12px">챙길 것</h2>
+      <div class="alerts" id="alerts"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-my">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <h2 id="h-my">내 구독</h2>
+        <div class="row">
+          <select id="sortSel" aria-label="정렬" style="width:auto">
+            <option value="price">비싼 순</option>
+            <option value="next">결제일 가까운 순</option>
+            <option value="cat">종류별</option>
+          </select>
+        </div>
+      </div>
+      <div class="list" id="list"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-add" id="addPanel">
+      <h2 id="h-add" style="margin-bottom:12px">구독 추가</h2>
+      <div class="tabs" role="group" aria-label="추가 방법">
+        <button class="tab" data-mode="pick" aria-pressed="true">목록에서 고르기</button>
+        <button class="tab" data-mode="sms" aria-pressed="false">결제 문자 붙여넣기</button>
+        <button class="tab" data-mode="own" aria-pressed="false">직접 입력</button>
+      </div>
+
+      <div id="mPick">
+        <div class="searchrow"><input id="q" type="search" placeholder="서비스 이름 검색 (예: 넷플, 멜론, 쿠팡)" aria-label="서비스 검색"></div>
+        <div class="tabs" id="cats" role="group" aria-label="종류"></div>
+        <div class="cat" id="catalog"></div>
+      </div>
+
+      <div id="mSms" hidden>
+        <label for="smsIn" class="sub">카드 결제 문자, 앱 알림, 영수증 메일 문구를 여러 줄 붙여넣으세요. 금액과 서비스를 찾아 드려요. 글은 이 화면 안에서만 읽고 어디로도 보내지 않아요.</label>
+        <textarea id="smsIn" placeholder="[Web발신] 신한카드 승인 홍*동 13,500원 일시불 10/15 14:02 넷플릭스"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn pri" id="btnParse">찾기</button><button class="btn ghost" id="btnSmsEx">예시 문자 넣기</button></div>
+        <div class="found" id="found"></div>
+      </div>
+
+      <div id="mOwn" hidden>
+        <div class="edit" style="border-top:0;padding-top:0">
+          <label>서비스 이름<input id="oName" placeholder="예: 헬스장 앱"></label>
+          <label>금액(원)<input id="oPrice" inputmode="numeric" placeholder="9900"></label>
+          <label>결제 주기<select id="oCycle"><option value="m">매달</option><option value="y">매년</option></select></label>
+          <label>종류<select id="oCat"></select></label>
+          <div class="acts"><button class="btn pri" id="btnOwn">추가</button></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot" id="foot"></div>
+  </div>
+
+  <aside class="side" aria-label="영수증">
+    <div class="receipt" id="receipt"></div>
+    <div class="row">
+      <button class="btn pri" id="btnPng">영수증 이미지 저장</button>
+      <button class="btn" id="btnCopy">글로 복사</button>
+    </div>
+    <div class="sub" id="pngNote"></div>
+  </aside>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const ASOF = "2026년 10월 20일", ASOF_DOT = "2026.10.20";
+const CATS = {ott:"영상",music:"음악",shop:"쇼핑·배달",ai:"AI",cloud:"저장공간",work:"업무·창작",book:"책",game:"게임",etc:"기타"};
+const USD = 1400; // Claude 달러 요금 환산용 (부가세 10% 더함)
+const usd = d => Math.round(d*USD*1.1/100)*100;
+/* 서비스 목록: plans = [이름, 금액, 'm'|'y'] , chk = 가격 확인 덜 된 것 */
+const S = [
+ {id:"netflix",n:"넷플릭스",c:"ott",al:["넷플릭스","netflix","넷플"],u:"https://www.netflix.com/kr/",plans:[["광고형 스탠다드",7000,"m"],["스탠다드",13500,"m"],["프리미엄",17000,"m"]],src:"FoxCG OTT 요금 비교(2026.10)"},
+ {id:"yt",n:"유튜브 프리미엄",c:"ott",al:["유튜브","youtube","google youtube","유튭"],u:"https://www.youtube.com/premium",plans:[["프리미엄",14900,"m"],["프리미엄 라이트",8500,"m"],["프리미엄 (아이폰 앱 결제)",19500,"m"],["라이트 (아이폰 앱 결제)",10900,"m"]],src:"유튜브 공식 블로그, 카드고릴라",note:"뮤직 프리미엄이 들어 있어요(라이트 제외)."},
+ {id:"tving",n:"티빙",c:"ott",al:["티빙","tving"],u:"https://www.tving.com/",plans:[["광고형 스탠다드",5500,"m"],["베이직",9500,"m"],["스탠다드",13500,"m"],["프리미엄",17000,"m"]],src:"FoxCG(2026.10)"},
+ {id:"wavve",n:"웨이브",c:"ott",al:["웨이브","wavve"],u:"https://www.wavve.com/",plans:[["광고형",5500,"m"],["베이직",7900,"m"],["스탠다드",10900,"m"],["프리미엄",13900,"m"]],src:"FoxCG(2026.10)",note:"앱 결제는 더 비쌀 수 있어요(광고형 인앱 6,300원)."},
+ {id:"double",n:"티빙×웨이브 더블",c:"ott",al:["더블 이용권","티빙웨이브"],u:"https://www.tving.com/",plans:[["슬림",9500,"m"],["베이직",13500,"m"],["스탠다드",15000,"m"],["프리미엄",19500,"m"]],src:"FoxCG(2026.10)",chk:1},
+ {id:"disney",n:"디즈니+",c:"ott",al:["디즈니","disney"],u:"https://www.disneyplus.com/ko-kr",plans:[["스탠다드",9900,"m"],["프리미엄",13900,"m"],["스탠다드 1년",99000,"y"],["프리미엄 1년",139000,"y"]],src:"FoxCG, 유리지갑(2026.6)"},
+ {id:"dtw",n:"디즈니+·티빙·웨이브 번들",c:"ott",al:["3사 번들"],u:"https://www.disneyplus.com/ko-kr",plans:[["스탠다드 번들",21500,"m"]],src:"FoxCG(2026.10)",chk:1},
+ {id:"watcha",n:"왓챠",c:"ott",al:["왓챠","watcha"],u:"https://watcha.com/",plans:[["베이직",7900,"m"],["프리미엄",12900,"m"],["베이직 1년",79900,"y"],["프리미엄 1년",129900,"y"]],src:"유리지갑(2026.7)"},
+ {id:"appletv",n:"애플TV",c:"ott",al:["apple tv","애플티비"],u:"https://tv.apple.com/kr",plans:[["월간",6500,"m"]],src:"이용자 커뮤니티(2026.7)",chk:1},
+ {id:"melon",n:"멜론",c:"music",al:["멜론","melon"],u:"https://www.melon.com/buy/pamphlet/all.htm",plans:[["모바일 스트리밍클럽",7590,"m"],["스트리밍클럽",8690,"m"],["스트리밍 플러스",11990,"m"],["Hi-Fi 스트리밍클럽",13200,"m"]],src:"멜론 이용권 페이지"},
+ {id:"spotify",n:"스포티파이",c:"music",al:["스포티파이","spotify"],u:"https://www.spotify.com/kr-ko/premium/",plans:[["베이직",8690,"m"],["개인",11990,"m"],["듀오",17985,"m"],["학생",6600,"m"]],src:"겜스고 블로그(2026.7)",chk:1},
+ {id:"ytmusic",n:"유튜브 뮤직",c:"music",al:["유튜브뮤직","youtube music"],u:"https://music.youtube.com/",plans:[["뮤직 프리미엄",11990,"m"],["뮤직 프리미엄 (아이폰 앱 결제)",14900,"m"]],src:"유튜브 공식 블로그"},
+ {id:"applemusic",n:"애플뮤직",c:"music",al:["애플뮤직","apple music"],u:"https://www.apple.com/kr/apple-music/",plans:[["개인",8900,"m"],["가족",13500,"m"]],src:"미코(2026.7)"},
+ {id:"flo",n:"플로",c:"music",al:["플로","flo"],u:"https://www.music-flo.com/",plans:[["모바일 무제한",6900,"m"],["무제한 듣기",7900,"m"],["무제한+오프라인",10900,"m"]],src:"나무위키 FLO",chk:1},
+ {id:"coupang",n:"쿠팡 와우",c:"shop",al:["쿠팡","coupang","와우","로켓와우"],u:"https://www.coupang.com/",plans:[["와우 멤버십",7890,"m"]],src:"쿠팡플레이 요금 정리(FoxCG)",note:"쿠팡플레이·쿠팡이츠 무료배달이 들어 있어요."},
+ {id:"naver",n:"네이버플러스 멤버십",c:"shop",al:["네이버플러스","네이버 플러스","naver","네이버멤버십","네이버파이낸셜"],u:"https://nid.naver.com/membership/join",plans:[["기본 (넷플릭스 광고형 포함)",4900,"m"],["연간 결제",46800,"y"],["+ 넷플릭스 스탠다드",11400,"m"],["+ 넷플릭스 프리미엄",14900,"m"]],src:"MTN(2026.6), 카드고릴라",note:"7월부터 넷플릭스 업그레이드 요금이 내렸어요."},
+ {id:"baemin",n:"배민클럽",c:"shop",al:["배민","배달의민족","우아한형제들","baemin"],u:"https://www.baemin.com/",plans:[["배민클럽 (에디션 2)",3990,"m"],["배민클럽 + 유튜브 프리미엄",13990,"m"]],src:"SBS Biz(2026.10)"},
+ {id:"kurly",n:"컬리멤버스",c:"shop",al:["컬리","kurly","마켓컬리"],u:"https://www.kurly.com/",plans:[["컬리멤버스",1900,"m"]],src:"카드고릴라(2026)"},
+ {id:"kakao",n:"카카오멤버십",c:"etc",al:["카카오멤버십","카멤"],u:"https://www.kakaocorp.com/",plans:[["카카오멤버십",4900,"m"]],src:"카카오 보도자료(2026.10)",note:"이모티콘 플러스나 톡클라우드 중 하나가 들어 있어요."},
+ {id:"emoti",n:"이모티콘 플러스",c:"etc",al:["이모티콘","카카오"],u:"https://e.kakao.com/",plans:[["이모티콘 플러스",3900,"m"]],src:"카카오 보도자료(2026.10)"},
+ {id:"talkcloud",n:"톡클라우드",c:"cloud",al:["톡서랍","톡클라우드"],u:"https://my.kakao.com/",plans:[["130GB",3900,"m"]],src:"카카오 보도자료(2026.10)",chk:1},
+ {id:"chatgpt",n:"ChatGPT",c:"ai",al:["chatgpt","openai","챗gpt","챗지피티"],u:"https://chatgpt.com/#pricing",plans:[["Go",13000,"m"],["Plus",29000,"m"],["Pro 100",159000,"m"],["Pro 200",299000,"m"]],src:"SSD Nodes(2026.10, 원화 결제)"},
+ {id:"claude",n:"Claude",c:"ai",al:["claude","anthropic","클로드"],u:"https://claude.com/pricing",plans:[["Pro (약 $20)",usd(20),"m"],["Max 5x (약 $100)",usd(100),"m"],["Max 20x (약 $200)",usd(200),"m"]],src:"달러 요금을 1,400원·부가세 10%로 환산",note:"달러 결제라 카드에 찍히는 금액은 달마다 조금씩 달라요."},
+ {id:"gemini",n:"구글 AI",c:"ai",al:["google one","구글원","gemini","제미나이","google"],u:"https://one.google.com/intl/ko_kr/about/",plans:[["AI Plus",11000,"m"],["AI Pro",29000,"m"]],src:"쿠키뉴스(2026.1), LG유플러스 매거진(2026.4)",note:"AI Pro에는 저장공간 2TB가 들어 있어요."},
+ {id:"icloud",n:"iCloud+",c:"cloud",al:["icloud","아이클라우드","apple.com/bill","apple"],u:"https://www.apple.com/kr/icloud/",plans:[["50GB",1100,"m"],["200GB",4400,"m"],["2TB",14000,"m"]],src:"Apple 커뮤니티(2026.6~7)",note:"오래 쓴 사람은 예전 가격(200GB 3,300원)이 유지되기도 해요.",chk:1},
+ {id:"appleone",n:"Apple One",c:"cloud",al:["apple one","애플원"],u:"https://www.apple.com/kr/apple-one/",plans:[["개인",14900,"m"],["가족",20900,"m"]],src:"이용자 커뮤니티(2026.7)",note:"애플뮤직·애플TV·iCloud+가 들어 있어요.",chk:1},
+ {id:"ms365",n:"Microsoft 365",c:"work",al:["microsoft","마이크로소프트","오피스","office","ms365"],u:"https://www.microsoft.com/ko-kr/microsoft-365/buy/compare-all-microsoft-365-products",plans:[["Basic 100GB",2900,"m"],["Personal",12500,"m"],["Family",15500,"m"],["Premium (Copilot)",29000,"m"],["Personal 1년",125000,"y"],["Family 1년",155000,"y"]],src:"유리지갑(2026.9, MS 스토어 기준)"},
+ {id:"adobe",n:"어도비",c:"work",al:["adobe","어도비"],u:"https://www.adobe.com/kr/",plans:[["Creative Cloud 전체 앱",78100,"m"],["포토샵",30800,"m"],["포토그래피",26400,"m"],["라이트룸",13200,"m"],["Acrobat Pro",26400,"m"],["Acrobat Standard",17600,"m"],["학생 (첫해)",26400,"m"]],src:"유리지갑(2026.9)",note:"연간 약정이 기본이라 중간에 끊으면 위약금이 있어요."},
+ {id:"millie",n:"밀리의서재",c:"book",al:["밀리","millie"],u:"https://www.millie.co.kr/",plans:[["웹 결제",11900,"m"],["구글플레이",12900,"m"],["앱스토어",14900,"m"],["웹 1년",119000,"y"]],src:"피클플러스(2026.6)"},
+ {id:"nso",n:"닌텐도 스위치 온라인",c:"game",al:["닌텐도","nintendo"],u:"https://www.nintendo.com/kr/",plans:[["개인 1개월",5900,"m"],["개인 12개월",24900,"y"],["패밀리 12개월",47900,"y"],["+추가 팩 개인 12개월",49900,"y"],["+추가 팩 패밀리 12개월",84900,"y"]],src:"디스이즈게임(2026.5)"},
+ {id:"psplus",n:"PS 플러스",c:"game",al:["playstation","플레이스테이션","ps plus","sony"],u:"https://www.playstation.com/ko-kr/ps-plus/",plans:[["에센셜 1개월",10800,"m"],["스페셜 1개월",16200,"m"],["디럭스 1개월",19000,"m"]],src:"인벤 글로벌(2026.5 인상 전)",chk:1},
+];
+/* 가격 자료 날짜(그 가격이 확인된 글·페이지의 시점) */
+const D={netflix:"2026.10",yt:"2026.04",tving:"2026.10",wavve:"2026.10",double:"2026.10",disney:"2026.10",dtw:"2026.10",watcha:"2026.07",appletv:"2026.07",melon:"2026.10",spotify:"2026.07",ytmusic:"2026.04",applemusic:"2026.07",flo:"2026.09",coupang:"2026.01",naver:"2026.07",baemin:"2026.10",kurly:"2026.01",kakao:"2026.10",emoti:"2026.10",talkcloud:"2026.10",chatgpt:"2026.10",claude:"2026.10",gemini:"2026.04",icloud:"2026.07",appleone:"2026.07",ms365:"2026.09",adobe:"2026.09",millie:"2026.06",nso:"2026.05",psplus:"2026.05"};
+S.forEach(s=>s.d=D[s.id]);
+const ASOF_YM=[2026,10];
+const age=d=>{const[y,m]=d.split(".").map(Number);return (ASOF_YM[0]-y)*12+ASOF_YM[1]-m};
+const fresh=d=>age(d)<=3;
+const SBY = Object.fromEntries(S.map(s=>[s.id,s]));
+
+/* ---------- 저장 ---------- */
+const KEY="sub-receipt-v1"; /* 이름이 바뀌어도 저장 키는 그대로 둠 */
+let state={subs:[],sample:true};
+try{const r=localStorage.getItem(KEY);if(r){const v=JSON.parse(r);if(v&&Array.isArray(v.subs))state=v;}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+const uid=()=>Math.random().toString(36).slice(2,9);
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+function sampleSubs(){
+  const t=today();const tr=new Date(t);tr.setDate(tr.getDate()+4);
+  return [
+    mk("netflix",1,{day:15}),mk("yt",0,{day:3}),mk("coupang",0,{day:22}),
+    mk("naver",0,{day:9}),mk("melon",1,{day:27}),mk("chatgpt",1,{day:11}),
+    mk("tving",0,{day:5,trial:ymd(tr)}),mk("icloud",1,{day:18}),
+  ].map(s=>(s.ex=1,s));
+}
+function mk(sid,pi,o={}){
+  const s=SBY[sid],p=s.plans[pi];
+  const t=today();
+  return Object.assign({id:uid(),sid,pi,name:s.n,plan:p[0],cat:s.c,price:p[1],cycle:p[2],
+    day:o.day||t.getDate(),ydate:o.ydate||`${pad(t.getMonth()+1)}-${pad(t.getDate())}`,trial:o.trial||""},o);
+}
+if(!state.subs.length && state.sample){state.subs=sampleSubs();}
+
+/* ---------- 계산 ---------- */
+const won=n=>Math.round(n).toLocaleString("ko-KR")+"원";
+const monthly=s=>s.cycle==="y"?s.price/12:s.price;
+function nextPay(s){
+  const t=today();
+  if(s.cycle==="y"){
+    const [m,d]=(s.ydate||"01-01").split("-").map(Number);
+    let x=new Date(t.getFullYear(),m-1,d);if(x<t)x=new Date(t.getFullYear()+1,m-1,d);return x;
+  }
+  const dm=(y,m)=>new Date(y,m+1,0).getDate();
+  let y=t.getFullYear(),m=t.getMonth();
+  let x=new Date(y,m,Math.min(s.day,dm(y,m)));
+  if(x<t){m++;if(m>11){m=0;y++;}x=new Date(y,m,Math.min(s.day,dm(y,m)));}
+  return x;
+}
+const daysTo=d=>Math.round((d-today())/864e5);
+const dlabel=n=>n===0?"오늘":n===1?"내일":`${n}일 뒤`;
+
+/* 겹침·확인 규칙 */
+function checks(subs){
+  const out=[];const has=id=>subs.filter(s=>s.sid===id);
+  const any=(...ids)=>ids.some(i=>has(i).length);
+  // 체험 끝
+  subs.filter(s=>s.trial).forEach(s=>{const n=daysTo(new Date(s.trial));
+    if(n>=0&&n<=14)out.push(["stamp","체험 끝",`<b>${esc(s.name)}</b> 무료 체험이 ${dlabel(n)} 끝나요. 계속 안 쓸 거면 그 전에 해지하세요. 지나면 ${won(s.price)}이 결제돼요.`,s.id]);
+    else if(n<0)out.push(["warn","체험 지남",`<b>${esc(s.name)}</b> 체험 종료일(${s.trial})이 지났어요. 이제 정상 요금이 나가고 있을 수 있어요.`,s.id]);});
+  // 같은 서비스 두 번
+  const cnt={};subs.forEach(s=>{if(s.sid)cnt[s.sid]=(cnt[s.sid]||0)+1});
+  Object.entries(cnt).filter(([,n])=>n>1).forEach(([id,n])=>out.push(["stamp","중복",`<b>${SBY[id].n}</b>이(가) ${n}번 들어 있어요. 가족이 따로 결제하는 게 아니라면 하나는 빼도 돼요.`]));
+  const naver=has("naver")[0];
+  if(naver&&any("netflix"))out.push(["stamp","겹침",`<b>네이버플러스</b>에 넷플릭스 광고형이 들어 있어요. 넷플릭스를 따로 결제 중이면 네이버 쪽 업그레이드(스탠다드 +6,500원, 프리미엄 +10,000원)로 옮기는 게 쌀 수 있어요.`]);
+  const ytp=subs.filter(s=>(s.sid==="yt"&&!/라이트/.test(s.plan))||(s.sid==="baemin"&&/유튜브/.test(s.plan)));
+  if(ytp.length>1)out.push(["stamp","겹침",`유튜브 프리미엄이 <b>${ytp.length}곳</b>에서 결제되고 있어요(배민 결합 상품 포함).`]);
+  if(ytp.length&&any("ytmusic"))out.push(["stamp","겹침",`<b>유튜브 프리미엄</b>에 유튜브 뮤직이 이미 들어 있어요.`]);
+  else if(ytp.length&&any("melon","spotify","applemusic","flo"))out.push(["warn","확인",`유튜브 프리미엄에 음악(유튜브 뮤직)이 들어 있는데 음악 앱도 따로 쓰고 있어요. 하나만 쓴다면 유튜브를 라이트(8,500원)로 바꾸거나 음악 앱을 끊을 수 있어요.`]);
+  if(any("kakao")&&any("emoti"))out.push(["stamp","겹침",`<b>카카오멤버십</b>에서 이모티콘 플러스를 고를 수 있어요. 따로 결제하는 이모티콘 플러스(3,900원)는 끊어도 돼요.`]);
+  if(any("appleone")&&any("applemusic","icloud","appletv"))out.push(["stamp","겹침",`<b>Apple One</b>에 애플뮤직·애플TV·iCloud+가 들어 있어요. 따로 결제하는 게 있는지 보세요.`]);
+  if(any("dtw")&&any("disney","tving","wavve"))out.push(["stamp","겹침",`<b>3사 번들</b>에 디즈니+·티빙·웨이브가 다 들어 있어요.`]);
+  if(any("double")&&any("tving","wavve"))out.push(["stamp","겹침",`<b>티빙×웨이브 더블</b>을 쓰는데 티빙이나 웨이브를 따로도 결제하고 있어요.`]);
+  if(any("coupang")&&any("baemin"))out.push(["warn","확인",`쿠팡 와우(쿠팡이츠 무료배달)와 배민클럽을 둘 다 쓰고 있어요. 배달을 한쪽에서만 시킨다면 하나로 줄일 수 있어요.`]);
+  if(subs.some(s=>s.sid==="ms365"&&/Premium/.test(s.plan))&&subs.some(s=>s.sid==="ms365"&&!/Premium/.test(s.plan)))out.push(["stamp","겹침",`Microsoft 365 Premium에 Personal 기능이 들어 있어요.`]);
+  const ott=new Set(subs.filter(s=>s.cat==="ott").map(s=>s.sid||s.name));
+  if(ott.size>=3)out.push(["warn","확인",`영상 구독이 <b>${ott.size}개</b>예요. 지난달에 실제로 본 것만 남기고, 보고 싶은 작품이 나올 때 한 달씩 다시 가입해도 돼요.`]);
+  const ai=new Set(subs.filter(s=>s.cat==="ai").map(s=>s.sid||s.name));
+  if(ai.size>=2)out.push(["warn","확인",`AI 구독이 <b>${ai.size}개</b>예요. 주로 쓰는 하나만 유료로 두는 사람이 많아요.`]);
+  const ex=subs.filter(s=>s.sid&&/(아이폰 앱|앱스토어|구글플레이)/.test(s.plan));
+  ex.forEach(s=>out.push(["warn","확인",`<b>${esc(s.name)}</b>을 앱으로 결제하고 있어요. 웹에서 결제하면 더 싼 경우가 많아요.`]));
+  // 다가오는 결제
+  const up=subs.map(s=>[s,daysTo(nextPay(s))]).filter(([,n])=>n<=3).sort((a,b)=>a[1]-b[1]);
+  up.forEach(([s,n])=>out.push(["ok","결제",`<b>${esc(s.name)}</b> ${won(s.price)} ${dlabel(n)} 결제 예정`]));
+  return out;
+}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+/* ---------- 그리기 ---------- */
+const $=id=>document.getElementById(id);
+let openId=null,curCat="all";
+function render(){
+  const subs=state.subs;
+  const m=subs.reduce((a,s)=>a+monthly(s),0);
+  $("sMonth").textContent=won(m);$("sYear").textContent=won(m*12);$("sCount").textContent=subs.length+"개";
+  $("btnSample").hidden=!subs.some(s=>s.ex);
+  // 종류별 막대
+  const by={};subs.forEach(s=>by[s.cat]=(by[s.cat]||0)+monthly(s));
+  const mx=Math.max(1,...Object.values(by));
+  $("bars").innerHTML=Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="bar"><span>${CATS[c]}</span><span class="t"><i style="width:${(v/mx*100).toFixed(1)}%"></i></span><span class="a num">${won(v)}</span></div>`).join("");
+  // 알림
+  const al=checks(subs);
+  $("alerts").innerHTML=al.length?al.map(([k,t,h])=>`<div class="alert ${k}"><span class="tag">${t}</span><span>${h}</span></div>`).join(""):`<div class="sub">겹치는 구독이나 곧 끝나는 체험은 없어요. 무료 체험을 시작했다면 구독을 열어 체험 종료일을 넣어 두세요.</div>`;
+  renderList();renderReceipt(m,al);
+  save();
+}
+function renderList(){
+  const subs=[...state.subs];const so=$("sortSel").value;
+  if(so==="price")subs.sort((a,b)=>monthly(b)-monthly(a));
+  else if(so==="next")subs.sort((a,b)=>nextPay(a)-nextPay(b));
+  else subs.sort((a,b)=>Object.keys(CATS).indexOf(a.cat)-Object.keys(CATS).indexOf(b.cat)||monthly(b)-monthly(a));
+  if(!subs.length){$("list").innerHTML=`<div class="empty">아직 구독이 없어요. 아래에서 쓰는 서비스를 골라 넣거나, 카드 결제 문자를 붙여넣어 보세요.</div>`;return;}
+  $("list").innerHTML=subs.map(s=>{
+    const np=nextPay(s),n=daysTo(np);
+    const trialN=s.trial?daysTo(new Date(s.trial)):null;
+    const svc=s.sid?SBY[s.sid]:null;
+    return `<div class="item" data-id="${s.id}">
+      <div><div class="nm">${esc(s.name)}${s.ex?'<span class="pill x">예시</span>':''}</div><div class="pl">${esc(s.plan||"")} · ${CATS[s.cat]}</div></div>
+      <div class="pr num">${won(s.price)}<small>${s.cycle==="y"?"매년 · 월 "+won(s.price/12):"매달"}</small></div>
+      <div class="meta">
+        <span class="pill ${n<=3?'d':''}">다음 결제 ${np.getMonth()+1}/${np.getDate()} (${dlabel(n)})</span>
+        ${trialN!==null&&trialN>=0?`<span class="pill t">체험 끝 ${dlabel(trialN)}</span>`:""}
+        <button class="btn sm ghost" data-act="toggle" aria-expanded="${openId===s.id}">${openId===s.id?"닫기":"고치기"}</button>
+      </div>
+      ${openId===s.id?editHTML(s,svc):""}
+    </div>`}).join("");
+}
+function editHTML(s,svc){
+  const opts=svc?svc.plans.map((p,i)=>`<option value="${i}" ${i===s.pi?"selected":""}>${esc(p[0])} · ${won(p[1])}${p[2]==="y"?"/년":""}</option>`).join("")+`<option value="-1" ${s.pi===-1?"selected":""}>직접 입력</option>`:"";
+  const gcal=gcalLink(s),gtrial=s.trial?gcalTrial(s):"";
+  return `<div class="edit">
+    ${svc?`<label>요금제<select data-f="pi">${opts}</select></label>`:`<label>이름<input data-f="name" value="${esc(s.name)}"></label>`}
+    <label>실제 금액(원)<input data-f="price" inputmode="numeric" value="${s.price}"></label>
+    <label>주기<select data-f="cycle"><option value="m" ${s.cycle==="m"?"selected":""}>매달</option><option value="y" ${s.cycle==="y"?"selected":""}>매년</option></select></label>
+    ${s.cycle==="m"?`<label>결제일(매달)<select data-f="day">${Array.from({length:31},(_,i)=>`<option ${s.day===i+1?"selected":""}>${i+1}</option>`).join("")}</select></label>`:
+      `<label>결제일(매년)<input data-f="ydate" type="date" value="${new Date().getFullYear()}-${s.ydate}"></label>`}
+    <label>무료 체험 종료일<input data-f="trial" type="date" value="${s.trial}"></label>
+    ${svc?`<div class="sub" style="grid-column:1/-1">가격 자료 <b>${svc.d}</b> · 출처: ${esc(svc.src)}${svc.chk?' · <span class="svc chk" style="border:0;padding:0;background:none">가격 확인이 덜 된 항목</span>':''}${svc.note?"<br>"+esc(svc.note):""}</div>`:""}
+    <div class="acts">
+      <div class="row">
+        <a class="btn sm" href="${gcal}" target="_blank" rel="noopener">구글 캘린더에 결제일 넣기</a>
+        ${gtrial?`<a class="btn sm" href="${gtrial}" target="_blank" rel="noopener">체험 끝 하루 전 알림</a>`:""}
+        ${svc?`<a class="btn sm ghost" href="${svc.u}" target="_blank" rel="noopener">공식 사이트</a>`:""}
+      </div>
+      <button class="btn sm" data-act="del" style="color:var(--stamp)">빼기</button>
+    </div>
+  </div>`;
+}
+function gd(d){return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`}
+function gcalLink(s){
+  const d=nextPay(s),e=new Date(d);e.setDate(e.getDate()+1);
+  const p=new URLSearchParams({action:"TEMPLATE",text:`${s.name} 결제 ${won(s.price)}`,dates:`${gd(d)}/${gd(e)}`,
+    details:`${s.plan||""} 구독 결제일. 안 쓰면 이 전에 해지하세요. (구독 영수증)`,recur:`RRULE:FREQ=${s.cycle==="y"?"YEARLY":"MONTHLY"}`});
+  return "https://calendar.google.com/calendar/render?"+p.toString();
+}
+function gcalTrial(s){
+  const d=new Date(s.trial);d.setDate(d.getDate()-1);const e=new Date(d);e.setDate(e.getDate()+1);
+  const p=new URLSearchParams({action:"TEMPLATE",text:`${s.name} 무료 체험 내일 끝`,dates:`${gd(d)}/${gd(e)}`,details:`계속 안 쓸 거면 오늘 해지하세요. 내일부터 ${won(s.price)} 결제.`});
+  return "https://calendar.google.com/calendar/render?"+p.toString();
+}
+
+/* 영수증 */
+function receiptLines(){
+  const subs=[...state.subs].sort((a,b)=>monthly(b)-monthly(a));
+  const m=subs.reduce((a,s)=>a+monthly(s),0);
+  return {subs,m};
+}
+const CHICKEN=22000,COFFEE=4700;
+function renderReceipt(m,al){
+  const {subs}=receiptLines();const t=new Date();
+  const stamp=al.some(a=>a[0]==="stamp");
+  $("receipt").innerHTML=`
+   <div class="c ttl">구독 영수증</div>
+   <div class="c small">매달 자동으로 나가는 돈</div>
+   ${stamp?'<div class="stampmark">해지 검토</div>':''}
+   <hr>
+   <div class="ln small"><span>발행</span><span>${t.getFullYear()}.${pad(t.getMonth()+1)}.${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}</span></div>
+   <div class="ln small"><span>품목 수</span><span>${subs.length}</span></div>
+   <hr>
+   ${subs.map(s=>`<div class="ln"><span>${esc(s.name)}</span><span class="num">${won(monthly(s))}</span></div>${s.cycle==="y"?`<div class="ln small"><span>&nbsp; (연 ${won(s.price)} ÷ 12)</span><span></span></div>`:""}`).join("")||'<div class="c small">(비어 있음)</div>'}
+   <hr>
+   <div class="ln tot"><span>월 합계</span><span class="num">${won(m)}</span></div>
+   <div class="ln"><span>연 환산</span><span class="num">${won(m*12)}</span></div>
+   <hr>
+   <div class="small">1년이면</div>
+   <div class="ln small"><span>· 치킨</span><span>${Math.floor(m*12/CHICKEN)}마리</span></div>
+   <div class="ln small"><span>· 아메리카노</span><span>${Math.floor(m*12/COFFEE)}잔</span></div>
+   <div class="bc"></div>
+   <div class="c small" style="margin-top:6px">치킨 22,000원 · 아메리카노 4,700원 기준</div>
+   <div class="c small">가격 조사일 ${ASOF_DOT}</div>`;
+}
+function receiptText(){
+  const {subs,m}=receiptLines();
+  return ["[구독 영수증]",...subs.map(s=>`${s.name} ${won(monthly(s))}${s.cycle==="y"?" (연간 ÷12)":""}`),"----------",`월 합계 ${won(m)}`,`1년이면 ${won(m*12)} (치킨 ${Math.floor(m*12/CHICKEN)}마리)`].join("\n");
+}
+async function receiptPng(){
+  try{await document.fonts.load('700 20px "Nanum Gothic Coding"');await document.fonts.load('400 14px "Nanum Gothic Coding"');}catch(e){}
+  const {subs,m}=receiptLines();
+  const W=720,P=48,LH=38,FM='"Nanum Gothic Coding",monospace';
+  const rows=[];
+  rows.push(["title"]);rows.push(["center","매달 자동으로 나가는 돈"]);rows.push(["hr"]);
+  const t=new Date();rows.push(["kv","발행",`${t.getFullYear()}.${pad(t.getMonth()+1)}.${pad(t.getDate())}`]);rows.push(["kv","품목 수",String(subs.length)]);rows.push(["hr"]);
+  subs.forEach(s=>rows.push(["kv",s.name,won(monthly(s))]));
+  rows.push(["hr"]);rows.push(["tot","월 합계",won(m)]);rows.push(["kv","연 환산",won(m*12)]);rows.push(["hr"]);
+  rows.push(["kv","1년이면 치킨",Math.floor(m*12/CHICKEN)+"마리"]);rows.push(["kv","1년이면 아메리카노",Math.floor(m*12/COFFEE)+"잔"]);rows.push(["bc"]);rows.push(["center","가격 조사일 "+ASOF_DOT]);
+  const H=P*2+rows.reduce((a,r)=>a+(r[0]==="title"?60:r[0]==="hr"?24:r[0]==="bc"?80:LH),0);
+  const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
+  g.fillStyle="#e9edf1";g.fillRect(0,0,W,H);
+  g.fillStyle="#fbfcfd";g.beginPath();g.moveTo(16,0);g.lineTo(W-16,0);
+  for(let x=W-16;x>16;x-=16){g.lineTo(x-8,H-14);g.lineTo(x-16,H);} g.closePath();g.fill();
+  const ink="#2b3a8c";g.fillStyle=ink;g.strokeStyle=ink;let y=P;
+  for(const r of rows){
+    if(r[0]==="title"){g.font=`700 34px ${FM}`;g.textAlign="center";g.fillText("구 독  영 수 증",W/2,y+38);y+=60;}
+    else if(r[0]==="center"){g.font=`400 22px ${FM}`;g.textAlign="center";g.fillText(r[1],W/2,y+26);y+=LH;}
+    else if(r[0]==="hr"){g.setLineDash([8,6]);g.lineWidth=2;g.beginPath();g.moveTo(P,y+12);g.lineTo(W-P,y+12);g.stroke();g.setLineDash([]);y+=24;}
+    else if(r[0]==="bc"){for(let x=P+60,i=0;x<W-P-60;i++){const w=[2,1,3,1,2][i%5];g.fillRect(x,y+16,w*2,52);x+=w*2+[3,2,4,2][i%4];}y+=80;}
+    else{const tot=r[0]==="tot";g.font=`${tot?700:400} ${tot?28:23}px ${FM}`;g.textAlign="left";
+      let name=r[1];const maxW=W-P*2-g.measureText(r[2]).width-24;while(g.measureText(name).width>maxW&&name.length>1)name=name.slice(0,-1);if(name!==r[1])name=name.slice(0,-1)+"…";
+      g.fillText(name,P,y+28);g.textAlign="right";g.fillText(r[2],W-P,y+28);y+=LH;}
+  }
+  return new Promise(res=>c.toBlob(res,"image/png"));
+}
+
+/* 목록에서 고르기 */
+function renderCats(){
+  const keys=["all",...Object.keys(CATS).filter(k=>S.some(s=>s.c===k))];
+  $("cats").innerHTML=keys.map(k=>`<button class="tab" data-cat="${k}" aria-pressed="${curCat===k}">${k==="all"?"전체":CATS[k]}</button>`).join("");
+}
+function renderCatalog(){
+  const q=$("q").value.trim().toLowerCase();
+  const list=S.filter(s=>(curCat==="all"||s.c===curCat)&&(!q||s.n.toLowerCase().includes(q)||s.al.some(a=>a.toLowerCase().includes(q))));
+  $("catalog").innerHTML=list.map(s=>`<div class="svc"><div class="h"><span>${s.n}</span><span class="from">${won(Math.min(...s.plans.map(p=>p[2]==="y"?p[1]/12:p[1])))}~</span></div>
+    <div class="pls">${s.plans.map((p,i)=>`<button data-add="${s.id}" data-pi="${i}">${esc(p[0])} <b>${won(p[1])}</b>${p[2]==="y"?"/년":""}</button>`).join("")}</div>
+    <div class="dt ${fresh(s.d)?"":"old"}">가격 자료 ${s.d}${fresh(s.d)?"":" · 3개월 넘음"}</div>${s.note?`<div class="note">${esc(s.note)}</div>`:""}${s.chk?`<div class="note chk">가격 확인이 덜 됐어요. 내 결제 금액으로 고쳐 주세요.</div>`:""}</div>`).join("")||`<div class="sub">찾는 서비스가 없어요. '직접 입력'으로 넣어 주세요.</div>`;
+}
+
+/* 결제 문자 읽기 */
+function parseSms(text){
+  const out=[];
+  text.split(/\n+/).map(l=>l.trim()).filter(Boolean).forEach(line=>{
+    const am=[...line.matchAll(/(\d{1,3}(?:,\d{3})+|\d{3,7})\s*원/g)].map(x=>+x[1].replace(/,/g,""));
+    if(!am.length)return;
+    const low=line.toLowerCase();
+    let svc=null;for(const s of S){if(s.al.some(a=>low.includes(a.toLowerCase()))||low.includes(s.n.toLowerCase())){svc=s;break;}}
+    let day=null;const dm=line.match(/(\d{1,2})[\/.](\d{1,2})(?!\d)/)||line.match(/(\d{1,2})월\s*(\d{1,2})일/);
+    if(dm)day=+dm[2];
+    const price=am[0];let pi=-1;
+    if(svc){let best=Infinity;svc.plans.forEach((p,i)=>{const d=Math.abs(p[1]-price);if(d<best){best=d;pi=i;}});if(best>0)pi=svc.plans[pi][1]===price?pi:pi;}
+    out.push({svc,price,day,pi,line});
+  });
+  return out;
+}
+let found=[];
+function renderFound(){
+  $("found").innerHTML=found.length?found.map((f,i)=>`<div class="f"><span>${f.svc?`<b>${f.svc.n}</b>`:'<b>모르는 서비스</b>'} · ${won(f.price)}${f.day?` · 매달 ${f.day}일`:""}</span>
+    ${f.done?'<span class="sub">넣었어요</span>':`<button class="btn sm pri" data-found="${i}">추가</button>`}</div>`).join(""):"";
+}
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.mode){document.querySelectorAll("[data-mode]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+    $("mPick").hidden=b.dataset.mode!=="pick";$("mSms").hidden=b.dataset.mode!=="sms";$("mOwn").hidden=b.dataset.mode!=="own";return;}
+  if(b.dataset.cat){curCat=b.dataset.cat;renderCats();renderCatalog();return;}
+  if(b.dataset.add){dropSample();const s=mk(b.dataset.add,+b.dataset.pi);state.subs.push(s);openId=s.id;render();toast(`${s.name} 넣었어요. 결제일을 맞춰 주세요.`);
+    document.querySelector(`[data-id="${s.id}"]`)?.scrollIntoView({behavior:"smooth",block:"center"});return;}
+  if(b.dataset.found){const f=found[+b.dataset.found];dropSample();let s;
+    if(f.svc){s=mk(f.svc.id,Math.max(0,f.pi));s.price=f.price;if(f.svc.plans[f.pi]?.[1]!==f.price)s.plan=s.plan+" (금액 직접)";}
+    else s={id:uid(),sid:null,pi:-1,name:"새 구독",plan:"",cat:"etc",price:f.price,cycle:"m",day:today().getDate(),ydate:"01-01",trial:""};
+    if(f.day){s.day=f.day;s.cycle="m";}
+    state.subs.push(s);f.done=1;renderFound();render();toast("넣었어요");return;}
+  const item=b.closest(".item");
+  if(item){const s=state.subs.find(x=>x.id===item.dataset.id);
+    if(b.dataset.act==="toggle"){openId=openId===s.id?null:s.id;renderList();return;}
+    if(b.dataset.act==="del"){state.subs=state.subs.filter(x=>x!==s);openId=null;render();toast(`${s.name} 뺐어요`);return;}}
+});
+document.addEventListener("change",e=>{
+  const el=e.target;const item=el.closest(".item");
+  if(el.id==="sortSel"){renderList();return;}
+  if(!item||!el.dataset.f)return;
+  const s=state.subs.find(x=>x.id===item.dataset.id);const f=el.dataset.f;delete s.ex;
+  if(f==="pi"){s.pi=+el.value;if(s.pi>=0){const p=SBY[s.sid].plans[s.pi];s.plan=p[0];s.price=p[1];s.cycle=p[2];}else s.plan="직접 입력";}
+  else if(f==="price"){const v=+String(el.value).replace(/[^\d]/g,"");if(v>=0)s.price=v;}
+  else if(f==="cycle")s.cycle=el.value;
+  else if(f==="day")s.day=+el.value;
+  else if(f==="ydate"&&el.value)s.ydate=el.value.slice(5);
+  else if(f==="trial")s.trial=el.value;
+  else if(f==="name")s.name=el.value||"이름 없음";
+  render();
+});
+$("q").addEventListener("input",renderCatalog);
+$("btnParse").onclick=()=>{found=parseSms($("smsIn").value);renderFound();if(!found.length)$("found").innerHTML='<div class="sub">금액(○○원)이 있는 줄을 찾지 못했어요.</div>';};
+$("btnSmsEx").onclick=()=>{$("smsIn").value="[Web발신] 신한카드 승인 홍*동 13,500원 일시불 10/15 14:02 넷플릭스\n[현대카드] 7,890원 승인 쿠팡(와우멤버십) 10/22\nKB국민 11,990원 승인 10/27 멜론\n토스페이 29,000원 결제 OPENAI *CHATGPT 10/11";};
+$("btnOwn").onclick=()=>{const name=$("oName").value.trim(),price=+$("oPrice").value.replace(/[^\d]/g,"");
+  if(!name||!price){toast("이름과 금액을 넣어 주세요");return;}dropSample();
+  const s={id:uid(),sid:null,pi:-1,name,plan:"직접 입력",cat:$("oCat").value,price,cycle:$("oCycle").value,day:today().getDate(),ydate:`${pad(today().getMonth()+1)}-${pad(today().getDate())}`,trial:""};
+  state.subs.push(s);openId=s.id;$("oName").value="";$("oPrice").value="";render();toast(`${name} 넣었어요`);};
+$("oCat").innerHTML=Object.entries(CATS).map(([k,v])=>`<option value="${k}" ${k==="etc"?"selected":""}>${v}</option>`).join("");
+$("btnSample").onclick=()=>{state.subs=state.subs.filter(s=>!s.ex);state.sample=false;openId=null;render();toast("예시를 지웠어요. 내 구독을 넣어 보세요.");$("addPanel").scrollIntoView({behavior:"smooth"});};
+function dropSample(){if(state.subs.some(s=>s.ex)){state.subs=state.subs.filter(s=>!s.ex);}state.sample=false;}
+$("btnCopy").onclick=async()=>{const t=receiptText();try{await navigator.clipboard.writeText(t);toast("복사했어요");}catch(e){
+  const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("복사했어요");}catch(_){toast("복사가 막혀 있어요");}ta.remove();}};
+let downloads=null;
+(async()=>{try{if(window.claude?.use)downloads=await window.claude.use("downloads");}catch(e){}})();
+$("btnPng").onclick=async()=>{
+  const blob=await receiptPng();if(!blob){toast("이미지를 만들지 못했어요");return;}
+  const name=`구독영수증-${ymd(today())}.png`;
+  if(downloads){try{await downloads.save({filename:name,data:blob});toast("저장했어요");}catch(e){
+      if(e?.code==="declined")return; toast("이 화면에서는 저장할 수 없어요");}
+    return;}
+  if(window.claude){toast("이 화면에서는 저장할 수 없어요");return;}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+};
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200);}
+
+$("asof").textContent=ASOF_DOT;
+$("foot").innerHTML=`가격은 ${ASOF}에 공식 페이지·기사·가격 비교 글을 찾아 정리한 값이에요. 통신사 결합, 카드 할인, 첫 달 할인, 예전 가격 유지 같은 건 반영하지 않았으니 <b>내 카드에 찍힌 금액으로 고쳐 쓰세요</b>. 서비스마다 적힌 '가격 자료' 날짜는 그 가격을 확인한 글이나 페이지의 시점이에요. 3개월이 넘었거나 '가격 확인이 덜 됐어요'라고 적힌 서비스는 내 결제 금액과 꼭 맞춰 보세요. 해지는 결제한 곳(웹, 앱스토어, 구글플레이, 통신사)에서 해야 멈춰요. 내 구독 목록은 이 브라우저에만 저장돼요.`;
+renderCats();renderCatalog();render();
+</script>
+
+</body>
+</html>
